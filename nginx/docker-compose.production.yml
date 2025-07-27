@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        networks:
+            - docker-nginx-html-example-network
+
+    webserver:
+        image: nginx:mainline-alpine
+        container_name: webserver
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - web-root:/var/www/html
+            - ./nginx-conf:/etc/nginx/conf.d
+            - certbot-etc:/etc/letsencrypt
+            - certbot-var:/var/lib/letsencrypt
+#            - dhparam:/etc/ssl/certs
+        depends_on:
+            - app
+        networks:
+            - docker-nginx-html-example-network
+
+    certbot:
+        image: certbot/certbot
+        container_name: certbot
+        volumes:
+            - certbot-etc:/etc/letsencrypt
+            - certbot-var:/var/lib/letsencrypt
+            - web-root:/var/www/html
+        depends_on:
+            - webserver
+        command: certonly --webroot --webroot-path=/var/www/html --email sajad@hey.com --agree-tos --no-eff-email --staging docker-html-nginx-example.sajadtorkamani.com  -d www.docker-html-nginx-example.sajadtorkamani.com
+
+volumes:
+    certbot-etc:
+    certbot-var:
+    web-root:
+        driver: local
+        driver_opts:
+            type: none
+            device: /home/sajad/sites/docker-nginx-html-example
+            o: bind
+    dhparam:
+        driver: local
+        driver_opts:
+            type: none
+            device: /home/sajad/sites/docker-nginx-html-example/dhparam/
+            o: bind
+
+networks:
+    docker-nginx-html-example-network:
+        driver: bridge
